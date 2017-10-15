@@ -1,0 +1,19 @@
+{
+  "name": "m-spec",
+  "version": "1.0.0",
+  "main": "./build/index.js",
+  "types": "./build/index.d.ts",
+  "scripts": {
+    "watch": "tsc -w",
+    "test": "tape build/*.js",
+    "browserify": "browserify build/index.js -o build/bundle.js --standalone m"
+  },
+  "author": "Max Whtie",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/tape": "^4.2.30",
+    "tape": "^4.8.0",
+    "typescript": "^2.5.3",
+    "browserify": "^14.4.0"
+  }
+}
