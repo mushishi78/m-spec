@@ -8,65 +8,76 @@ Simple, transparent testing tool for javascript.
 import * as m from "m-spec";
 
 // Create a global dictionary to hold tests in
+
 export let testSuite = {};
 
 // Add tests to dictionary per subgroup
-testSuite["GroupA"] = {
-	"description of the test": t => {
-		if (0 == "") {
-			t.error("that can't be true");
-		}
 
-		if (0 == "0") {
-			t.error("this is weird");
-		}
+testSuite["GroupA"] = {};
 
-		t.end();
-	},
-	"some other really important test": t => {
-		if (0 === "") {
-			t.error("this would be really concerning");
-		}
-
-		t.end();
+testSuite["GroupA"]["description of the test"] = t => {
+	if (0 == "") {
+		t.error("that can't be true");
 	}
+
+	if (0 == "0") {
+		t.error("this is weird");
+	}
+
+	t.end();
 };
 
+testSuite["GroupA"]["some other really important test"] = t => {
+	if (0 === "") {
+		t.error("this would be really concerning");
+	}
+
+	t.end();
+};
+
+// Create an output listener
+
+function listener(ev) {
+	switch(ev.mType) {
+		"Register":
+			console.log(`Registerd: ${ev.group} ${ev.name}`);
+			break;
+
+		"Start":
+			console.log(`Started: ${ev.group} ${ev.name} ${ev.timestamp}ms`);
+			break;
+
+		"Error":
+			console.log(`Error: ${ev.group} ${ev.name} ${ev.timestamp}ms`);
+			console.error(ev.message);
+			break;
+
+		"End":
+			console.log(`End: ${ev.group} ${ev.name} ${ev.timestamp})ms`);
+			break;
+
+		default:
+			throw new Error("Unrecognized m-spec event");
+	}
+}
+
 // Flatten suite to array of tests
+
 const tests = m.flattenSuite(testSuite);
 
-// Run the tests serially
-m.runTestsInSerial({
-	tests,
-	onResult: r => console.log(r.errors.length === 0 ? "." : "x"),
-	onDone: rs => {
-		console.log(`${rs.length} tests completed`);
+// Register tests with listeners
 
-		for (const r of rs) {
-			if (r.errors.length === 0) continue;
-			console.error(`### ${r.group} - ${r.name}\n${r.errors.join("\n")}`);
-		}
-	}
-});
+m.registerTests({ tests, listener });
 
+// Run single test
 
-// Run the tests and output TAP
-const tapLogger = m.tapLogger(tests.length, console.log);
-m.runTestsInSerial({ tests, onResult: tapLogger });
+m.runTest({ test: tests[0], listener })
 
-/*
-TAP version 13
-1..2
-not ok 1 GroupA - description of the test
-  ---
-  errors:
-    - that can't be true
-    - this is weird
-  ...
-ok 2 GroupA - some other really important test
-*/
+// Run tests serially
 
-// Run the tests in parallel
-m.runTestsInParallel({ tests, onResult: tapLogger });
+m.runTestsInSerial({ tests, listener });
 
+// Run tests in parallel
+
+m.runTestsInParallel({ tests, listener });
 ```

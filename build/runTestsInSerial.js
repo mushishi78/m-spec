@@ -2,22 +2,19 @@
 exports.__esModule = true;
 var runTest_1 = require("./runTest");
 function runTestsInSerial(_a) {
-    var tests = _a.tests, onResult = _a.onResult, onEnd = _a.onEnd;
-    var results = [];
+    var tests = _a.tests, listener = _a.listener, timeoutMs = _a.timeoutMs, now = _a.now;
     function recurse(i) {
-        if (!tests[i]) {
-            if (onEnd)
-                onEnd(results);
+        if (!tests[i])
             return;
-        }
         runTest_1.runTest({
             test: tests[i],
-            onResult: function (result) {
-                results = results.concat(result);
-                if (onResult)
-                    onResult(result);
-                recurse(i + 1);
-            }
+            listener: function (ev) {
+                listener(ev);
+                if (ev.mType === "End")
+                    recurse(i + 1);
+            },
+            timeoutMs: timeoutMs,
+            now: now
         });
     }
     recurse(0);

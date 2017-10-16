@@ -1,25 +1,18 @@
-import { Test, Result, T } from "./types";
+import { Test, Listener } from "./types";
 import { runTest } from "./runTest";
 
 export function runTestsInParallel({
 	tests,
-	onResult,
-	onEnd
+	listener,
+	timeoutMs,
+	now
 }: {
 	tests: Test[];
-	onResult?: { (result: Result): void };
-	onEnd?: { (results: Result[]): void };
+	listener: Listener;
+	timeoutMs?: number;
+	now?: { (): number };
 }) {
-	let results: Result[] = [];
-
 	for (const test of tests) {
-		runTest({
-			test,
-			onResult: result => {
-				results = results.concat(result);
-				if (onResult) onResult(result);
-				if (onEnd && results.length === tests.length) onEnd(results);
-			}
-		});
+		runTest({ test, listener, timeoutMs, now });
 	}
 }

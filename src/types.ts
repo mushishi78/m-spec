@@ -19,8 +19,41 @@ export interface T {
 	end: { (): void };
 }
 
-export interface Result {
+export interface Listener {
+	(ev: Event): void;
+}
+
+export type Event = Register | Start | Error | End;
+
+export interface Register {
+	mType: "Register";
+	tests: {
+		group: string;
+		name: string;
+	}[];
+}
+
+export interface Start {
+	mType: "Start";
+	timestamp: number;
+	testId: string;
 	group: string;
 	name: string;
-	errors: string[];
+}
+
+export interface Error {
+	mType: "Error";
+	timestamp: number;
+	testId: string;
+	group: string;
+	name: string;
+	message: string;
+}
+
+export interface End {
+	mType: "End";
+	timestamp: number;
+	testId: string;
+	group: string;
+	name: string;
 }

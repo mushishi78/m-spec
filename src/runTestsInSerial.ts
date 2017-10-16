@@ -1,30 +1,28 @@
-import { Test, Result, T } from "./types";
+import { Test, Listener } from "./types";
 import { runTest } from "./runTest";
 
 export function runTestsInSerial({
 	tests,
-	onResult,
-	onEnd
+	listener,
+	timeoutMs,
+	now
 }: {
 	tests: Test[];
-	onResult?: { (result: Result): void };
-	onEnd?: { (results: Result[]): void };
+	listener: Listener;
+	timeoutMs?: number;
+	now?: { (): number };
 }) {
-	let results: Result[] = [];
-
 	function recurse(i: number) {
-		if (!tests[i]) {
-			if (onEnd) onEnd(results);
-			return;
-		}
+		if (!tests[i]) return;
 
 		runTest({
 			test: tests[i],
-			onResult: result => {
-				results = results.concat(result);
-				if (onResult) onResult(result);
-				recurse(i + 1);
-			}
+			listener: ev => {
+				listener(ev);
+				if (ev.mType === "End") recurse(i + 1);
+			},
+			timeoutMs,
+			now
 		});
 	}
 

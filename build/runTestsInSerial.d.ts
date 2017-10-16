@@ -1,10 +1,9 @@
-import { Test, Result } from "./types";
-export declare function runTestsInSerial({tests, onResult, onEnd}: {
+import { Test, Listener } from "./types";
+export declare function runTestsInSerial({tests, listener, timeoutMs, now}: {
     tests: Test[];
-    onResult?: {
-        (result: Result): void;
-    };
-    onEnd?: {
-        (results: Result[]): void;
+    listener: Listener;
+    timeoutMs?: number;
+    now?: {
+        (): number;
     };
 }): void;

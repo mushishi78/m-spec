@@ -1,7 +1,11 @@
 import * as tape from "tape";
+import { Event } from "./types";
 import { runTestsInParallel } from "./runTestsInParallel";
+import { incrementer } from "./incrementer.test";
 
 tape("runTestsInParallel runs multiple tests in parrallel", tt => {
+	let events: Event[] = [];
+
 	runTestsInParallel({
 		tests: [
 			{
@@ -37,17 +41,55 @@ tape("runTestsInParallel runs multiple tests in parrallel", tt => {
 				}
 			}
 		],
-		onEnd: results => {
-			tt.deepEqual(results, [
+		now: incrementer(25),
+		listener: ev => {
+			events.push(ev);
+			if (events.length !== 6) return;
+
+			tt.deepEqual(events, [
 				{
+					mType: "Start",
+					timestamp: 26,
+					testId: "Addition|adds even numbers together|26",
 					group: "Addition",
-					name: "adds odd numbers together",
-					errors: ["expected odd numbers to add to odd number"]
+					name: "adds even numbers together"
 				},
 				{
+					mType: "Start",
+					timestamp: 27,
+					testId: "Addition|adds odd numbers together|27",
+					group: "Addition",
+					name: "adds odd numbers together"
+				},
+				{
+					mType: "Error",
+					timestamp: 28,
+					testId: "Addition|adds odd numbers together|27",
+					group: "Addition",
+					name: "adds odd numbers together",
+					message: "expected odd numbers to add to odd number"
+				},
+				{
+					mType: "End",
+					timestamp: 29,
+					testId: "Addition|adds odd numbers together|27",
+					group: "Addition",
+					name: "adds odd numbers together"
+				},
+				{
+					mType: "Error",
+					timestamp: 30,
+					testId: "Addition|adds even numbers together|26",
 					group: "Addition",
 					name: "adds even numbers together",
-					errors: ["expected even numbers to add to odd number"]
+					message: "expected even numbers to add to odd number"
+				},
+				{
+					mType: "End",
+					timestamp: 31,
+					testId: "Addition|adds even numbers together|26",
+					group: "Addition",
+					name: "adds even numbers together"
 				}
 			]);
 			tt.end();

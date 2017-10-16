@@ -1,7 +1,11 @@
 import * as tape from "tape";
+import { Event } from "./types";
 import { runTest } from "./runTest";
+import { incrementer } from "./incrementer.test";
 
 tape("runTest runs a succesful test", tt => {
+	let events: Event[] = [];
+
 	runTest({
 		test: {
 			group: "Addition",
@@ -13,16 +17,35 @@ tape("runTest runs a succesful test", tt => {
 				t.end();
 			}
 		},
-		onResult: result => {
-			tt.equal(result.group, "Addition");
-			tt.equal(result.name, "adds even numbers together");
-			tt.deepEqual(result.errors, []);
+		now: incrementer(78),
+		listener: ev => {
+			events.push(ev);
+			if (ev.mType !== "End") return;
+
+			tt.deepEqual(events, [
+				{
+					mType: "Start",
+					timestamp: 79,
+					testId: "Addition|adds even numbers together|79",
+					group: "Addition",
+					name: "adds even numbers together"
+				},
+				{
+					mType: "End",
+					timestamp: 80,
+					testId: "Addition|adds even numbers together|79",
+					group: "Addition",
+					name: "adds even numbers together"
+				}
+			]);
 			tt.end();
 		}
 	});
 });
 
 tape("runTest runs a failed test", tt => {
+	let events: Event[] = [];
+
 	runTest({
 		test: {
 			group: "Addition",
@@ -34,14 +57,42 @@ tape("runTest runs a failed test", tt => {
 				t.end();
 			}
 		},
-		onResult: result => {
-			tt.deepEqual(result.errors, [`expected ${0.1 + 0.2} to be 0.3`]);
+		now: incrementer(34),
+		listener: ev => {
+			events.push(ev);
+			if (ev.mType !== "End") return;
+
+			tt.deepEqual(events, [
+				{
+					mType: "Start",
+					timestamp: 35,
+					testId: "Addition|adds floating numbers|35",
+					group: "Addition",
+					name: "adds floating numbers"
+				},
+				{
+					mType: "Error",
+					timestamp: 36,
+					testId: "Addition|adds floating numbers|35",
+					group: "Addition",
+					name: "adds floating numbers",
+					message: `expected ${0.1 + 0.2} to be 0.3`
+				},
+				{
+					mType: "End",
+					timestamp: 37,
+					testId: "Addition|adds floating numbers|35",
+					group: "Addition",
+					name: "adds floating numbers"
+				}
+			]);
 			tt.end();
 		}
 	});
 });
 
 tape("runTest runs collects multiple errors", tt => {
+	let events: Event[] = [];
 	const a = 5;
 
 	runTest({
@@ -60,10 +111,42 @@ tape("runTest runs collects multiple errors", tt => {
 				t.end();
 			}
 		},
-		onResult: result => {
-			tt.deepEqual(result.errors, [
-				`expected ${a} to be less than 0`,
-				`expected ${a} to be greater than 20`
+		now: incrementer(97),
+		listener: ev => {
+			events.push(ev);
+			if (ev.mType !== "End") return;
+
+			tt.deepEqual(events, [
+				{
+					mType: "Start",
+					timestamp: 98,
+					testId: "A|is out of range|98",
+					group: "A",
+					name: "is out of range"
+				},
+				{
+					mType: "Error",
+					timestamp: 99,
+					testId: "A|is out of range|98",
+					group: "A",
+					name: "is out of range",
+					message: `expected ${a} to be less than 0`
+				},
+				{
+					mType: "Error",
+					timestamp: 100,
+					testId: "A|is out of range|98",
+					group: "A",
+					name: "is out of range",
+					message: `expected ${a} to be greater than 20`
+				},
+				{
+					mType: "End",
+					timestamp: 101,
+					testId: "A|is out of range|98",
+					group: "A",
+					name: "is out of range"
+				}
 			]);
 			tt.end();
 		}
@@ -71,6 +154,8 @@ tape("runTest runs collects multiple errors", tt => {
 });
 
 tape("runTest times out", tt => {
+	let events: Event[] = [];
+
 	runTest({
 		test: {
 			group: "Infinity",
@@ -82,14 +167,43 @@ tape("runTest times out", tt => {
 			}
 		},
 		timeoutMs: 10,
-		onResult: result => {
-			tt.deepEqual(result.errors, [`timed out`]);
+		now: incrementer(167),
+		listener: ev => {
+			events.push(ev);
+			if (ev.mType !== "End") return;
+
+			tt.deepEqual(events, [
+				{
+					mType: "Start",
+					timestamp: 168,
+					testId: "Infinity|is too long to wait|168",
+					group: "Infinity",
+					name: "is too long to wait"
+				},
+				{
+					mType: "Error",
+					timestamp: 169,
+					testId: "Infinity|is too long to wait|168",
+					group: "Infinity",
+					name: "is too long to wait",
+					message: "timed out"
+				},
+				{
+					mType: "End",
+					timestamp: 170,
+					testId: "Infinity|is too long to wait|168",
+					group: "Infinity",
+					name: "is too long to wait"
+				}
+			]);
 			tt.end();
 		}
 	});
 });
 
 tape("runTest catches synchronous errors", tt => {
+	let events: Event[] = [];
+
 	runTest({
 		test: {
 			group: "Panic",
@@ -98,8 +212,35 @@ tape("runTest catches synchronous errors", tt => {
 				throw new Error("was not expecting that");
 			}
 		},
-		onResult: result => {
-			tt.equal(result.errors.length, 1);
+		now: incrementer(347),
+		listener: ev => {
+			events.push(ev);
+			if (ev.mType !== "End") return;
+
+			tt.deepEqual(events, [
+				{
+					mType: "Start",
+					timestamp: 348,
+					testId: "Panic|divides and conquers|348",
+					group: "Panic",
+					name: "divides and conquers"
+				},
+				{
+					mType: "Error",
+					timestamp: 349,
+					testId: "Panic|divides and conquers|348",
+					group: "Panic",
+					name: "divides and conquers",
+					message: "unexpected exception"
+				},
+				{
+					mType: "End",
+					timestamp: 350,
+					testId: "Panic|divides and conquers|348",
+					group: "Panic",
+					name: "divides and conquers"
+				}
+			]);
 			tt.end();
 		}
 	});

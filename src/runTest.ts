@@ -1,44 +1,70 @@
-import { Test, Result, T } from "./types";
+import { Test, Listener } from "./types";
 
-export function runTest({
-	test,
-	onResult,
-	timeoutMs
-}: {
+export function runTest(args: {
 	test: Test;
-	onResult: { (result: Result): void };
+	listener: Listener;
 	timeoutMs?: number;
+	now?: { (): number };
 }) {
-	let errors: string[] = [];
-	let timeoutId = setTimeout(onTimeout, timeoutMs || 10000);
+	const { name, group, testFn } = args.test;
+	const timeoutMs = args.timeoutMs == null ? 10000 : args.timeoutMs;
+	const now = args.now || performance.now;
+	const startNow = now();
+	const id = `${group}|${name}|${startNow}`;
+	let ended = false;
+	let timeoutId = setTimeout(onTimeout, timeoutMs);
 
-	const end = doOnce(() => {
-		clearTimeout(timeoutId);
-		onResult({ name: test.name, group: test.group, errors });
+	// Start
+	args.listener({
+		mType: "Start",
+		timestamp: startNow,
+		testId: id,
+		group,
+		name
 	});
 
-	function onTimeout() {
-		errors = errors.concat("timed out");
-		end();
-	}
+	// Error
+	function error(message: string) {
+		if (ended) throw new Error("Error occured after test ended");
 
-	try {
-		test.testFn({
-			error: msg => (errors = errors.concat(msg)),
-			end
+		args.listener({
+			mType: "Error",
+			timestamp: now(),
+			testId: id,
+			group,
+			name,
+			message
 		});
-	} catch (ex) {
-		errors = errors.concat(ex.stack);
+	}
+
+	// End
+	function end() {
+		if (ended) return;
+		ended = true;
+
+		clearTimeout(timeoutId);
+
+		args.listener({
+			mType: "End",
+			timestamp: now(),
+			testId: id,
+			group,
+			name
+		});
+	}
+
+	// Timeout
+	function onTimeout() {
+		if (ended) return;
+		error("timed out");
 		end();
 	}
-}
 
-function doOnce(fn: { (): void }) {
-	let done = false;
-
-	return () => {
-		if (done) return;
-		done = true;
-		fn();
-	};
+	// Test with catch
+	try {
+		testFn({ error, end });
+	} catch (_ex) {
+		error("unexpected exception");
+		end();
+	}
 }

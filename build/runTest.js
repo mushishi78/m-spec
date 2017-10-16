@@ -1,35 +1,62 @@
 "use strict";
 exports.__esModule = true;
-function runTest(_a) {
-    var test = _a.test, onResult = _a.onResult, timeoutMs = _a.timeoutMs;
-    var errors = [];
-    var timeoutId = setTimeout(onTimeout, timeoutMs || 10000);
-    var end = doOnce(function () {
-        clearTimeout(timeoutId);
-        onResult({ name: test.name, group: test.group, errors: errors });
+function runTest(args) {
+    var _a = args.test, name = _a.name, group = _a.group, testFn = _a.testFn;
+    var timeoutMs = args.timeoutMs == null ? 10000 : args.timeoutMs;
+    var now = args.now || performance.now;
+    var startNow = now();
+    var id = group + "|" + name + "|" + startNow;
+    var ended = false;
+    var timeoutId = setTimeout(onTimeout, timeoutMs);
+    // Start
+    args.listener({
+        mType: "Start",
+        timestamp: startNow,
+        testId: id,
+        group: group,
+        name: name
     });
-    function onTimeout() {
-        errors = errors.concat("timed out");
-        end();
-    }
-    try {
-        test.testFn({
-            error: function (msg) { return (errors = errors.concat(msg)); },
-            end: end
+    // Error
+    function error(message) {
+        if (ended)
+            throw new Error("Error occured after test ended");
+        args.listener({
+            mType: "Error",
+            timestamp: now(),
+            testId: id,
+            group: group,
+            name: name,
+            message: message
         });
     }
-    catch (ex) {
-        errors = errors.concat(ex.stack);
+    // End
+    function end() {
+        if (ended)
+            return;
+        ended = true;
+        clearTimeout(timeoutId);
+        args.listener({
+            mType: "End",
+            timestamp: now(),
+            testId: id,
+            group: group,
+            name: name
+        });
+    }
+    // Timeout
+    function onTimeout() {
+        if (ended)
+            return;
+        error("timed out");
+        end();
+    }
+    // Test with catch
+    try {
+        testFn({ error: error, end: end });
+    }
+    catch (_ex) {
+        error("unexpected exception");
         end();
     }
 }
 exports.runTest = runTest;
-function doOnce(fn) {
-    var done = false;
-    return function () {
-        if (done)
-            return;
-        done = true;
-        fn();
-    };
-}
